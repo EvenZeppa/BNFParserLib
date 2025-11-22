@@ -1,5 +1,6 @@
 #include "Grammar.hpp"
 #include "BNFTokenizer.hpp"
+#include "BNFParserInternal.hpp"
 #include <iostream>
 
 Rule::Rule() : rootExpr(0) {}
@@ -21,22 +22,23 @@ void Grammar::addRule(const std::string& ruleText) {
     std::string lhs = ruleText.substr(0, pos);
     std::string rhs = ruleText.substr(pos + 3);
 
-    // trim
-    // (TODO améliorer)
-    while (!lhs.empty() && lhs[0] == ' ') lhs.erase(0, 1);
-    while (!lhs.empty() && lhs[lhs.size()-1] == ' ') lhs.erase(lhs.size()-1, 1);
+    // trim spaces
+    while (!lhs.empty() && lhs[0] == ' ') lhs.erase(0,1);
+    while (!lhs.empty() && lhs[lhs.size()-1] == ' ') lhs.erase(lhs.size()-1,1);
 
     Rule* r = new Rule();
     r->name = lhs;
 
     BNFTokenizer tz(rhs);
-    r->rootExpr = parseExpression(tz);
+    BNFParserInternal internalParser(tz);
+    r->rootExpr = internalParser.parseExpression();
 
     rules.push_back(r);
 }
 
 
-Rule* Grammar::getRule(const std::string& name) {
+
+Rule* Grammar::getRule(const std::string& name) const {
     for (size_t i = 0; i < rules.size(); ++i)
         if (rules[i]->name == name)
             return rules[i];

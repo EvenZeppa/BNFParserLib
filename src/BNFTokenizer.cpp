@@ -46,6 +46,43 @@ Token BNFTokenizer::next() {
     return parseWord();
 }
 
+// #include <iostream>
+
+// Token BNFTokenizer::next() {
+//     skipSpaces();
+
+//     if (pos >= text.size()) {
+//         Token t(Token::TOK_END, "");
+//         std::cout << "[Tokenizer] Token: type=TOK_END, value=''" << std::endl;
+//         return t;
+//     }
+
+//     char c = text[pos];
+
+//     Token t(Token::TOK_END, ""); // token par défaut, sera remplacé
+
+//     // Symbol <...>
+//     if (c == '<')
+//         t = parseSymbol();
+//     // Terminal '...' or "..."
+//     else if (c == '\'' || c == '"')
+//         t = parseTerminal();
+//     // Single-character tokens
+//     else if (c == '{') { pos++; t = Token(Token::TOK_LBRACE, "{"); }
+//     else if (c == '}') { pos++; t = Token(Token::TOK_RBRACE, "}"); }
+//     else if (c == '[') { pos++; t = Token(Token::TOK_LBRACKET, "["); }
+//     else if (c == ']') { pos++; t = Token(Token::TOK_RBRACKET, "]"); }
+//     else if (c == '|') { pos++; t = Token(Token::TOK_PIPE, "|"); }
+//     // Word (fallback)
+//     else
+//         t = parseWord();
+
+//     // Affichage pour debug
+//     std::cout << "[Tokenizer] Token: type=" << t.type << ", value='" << t.value << "'" << std::endl;
+
+//     return t;
+// }
+
 Token BNFTokenizer::parseSymbol() {
     size_t start = pos++;
     while (pos < text.size() && text[pos] != '>')
@@ -56,11 +93,12 @@ Token BNFTokenizer::parseSymbol() {
 
 Token BNFTokenizer::parseTerminal() {
     char quote = text[pos];
-    size_t start = pos++;
+    size_t start = ++pos; // commencer après la quote
     while (pos < text.size() && text[pos] != quote)
         pos++;
-    if (pos < text.size()) pos++; // include closing quote
-    return Token(Token::TOK_TERMINAL, text.substr(start, pos - start));
+    std::string val = text.substr(start, pos - start); // sans les quotes
+    if (pos < text.size()) pos++; // consommer la quote fermante
+    return Token(Token::TOK_TERMINAL, val);
 }
 
 Token BNFTokenizer::parseWord() {

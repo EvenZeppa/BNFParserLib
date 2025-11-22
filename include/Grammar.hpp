@@ -20,7 +20,7 @@ public:
     ~Grammar();
 
     void addRule(const std::string& ruleText);
-    Rule* getRule(const std::string& name);
+    Rule* getRule(const std::string& name) const;
 
 private:
     Expression* parseExpression(BNFTokenizer& tz);
