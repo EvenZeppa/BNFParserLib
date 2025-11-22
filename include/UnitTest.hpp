@@ -32,6 +32,17 @@ static int failed = 0;
         } \
     } while(0)
 
+#define ASSERT_FALSE(cond) \
+	do { \
+		if (cond) { \
+			std::cout << "[FAIL] " << __FILE__ << ":" << __LINE__ \
+					  << ": ASSERT_FALSE(" << #cond << ") failed" << std::endl; \
+			++failed; \
+		} else { \
+			++passed; \
+		} \
+	} while(0)
+
 // Affiche le résumé
 inline void printTestSummary() {
     std::cout << "\n=== Test summary ===" << std::endl;

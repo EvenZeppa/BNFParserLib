@@ -1,101 +1,236 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include "Grammar.hpp"
-#include "BNFParserInternal.hpp"
-#include "BNFTokenizer.hpp"
 #include "Expression.hpp"
+#include "Grammar.hpp"
+#include <string>
+#include <map>
+#include <iostream>
 
-// Fonction récursive pour afficher l'AST
-void printAST(Expression* expr, int indent = 0) {
-    if (!expr) return;
+class BNFInterpreter {
+private:
+	Grammar* grammar;
+public:
+	std::map<std::string, Expression*> rules;
 
-    std::string pad(indent * 2, ' ');
-    std::cout << pad << expr->type
-              << (expr->value.empty() ? "" : " [match=\"" + expr->value + "\"]")
-              << std::endl;
+	BNFInterpreter(Grammar* g) : grammar(g) {}
 
-    for (size_t i = 0; i < expr->children.size(); ++i) {
-        printAST(expr->children[i], indent + 1);
-    }
-}
+	~BNFInterpreter() {
+		// Supprime toutes les règles et leurs expressions
+		std::map<std::string, Expression*>::iterator it;
+		for (it = rules.begin(); it != rules.end(); ++it) {
+			delete it->second;
+		}
+		rules.clear();
+	}
 
+	bool parse(const std::string& ruleName, const std::string& input, std::string& output) {
+		Rule* rule = grammar->getRule(ruleName);
+		if (!rule || !rule->rootExpr) return false;
+		return parseExpression(rule->rootExpr, input, output);
+	}
+
+	// Fonction récursive qui parse une Expression sur tout l’input
+	bool parseExpression(Expression* expr, const std::string& input, std::string& output) {
+		if (!expr) return false;
+
+		switch (expr->type) {  
+			case Expression::EXPR_TERMINAL:  
+			std::cout << "Trying to match terminal: '" << expr->value << "' with input: '" << input << "'\n";
+				if (input.substr(0, expr->value.size()) == expr->value) {
+					output = expr->value;
+					return true;
+				}
+
+				return false;  
+
+			case Expression::EXPR_SYMBOL: {  
+				std::cout << "Expanding symbol: '" << expr->value << "'\n";
+				std::string result;  
+				Rule* r = grammar->getRule(expr->value);  
+				if (!r) return false;  
+				if (parseExpression(r->rootExpr, input, result)) {  
+					output = result;  
+					return true;  
+				}  
+				return false;  
+			}  
+
+			case Expression::EXPR_SEQUENCE: {  
+				std::cout << "Trying to match sequence: \n";
+				std::string accumulated;  
+				std::string remaining = input;
+				for (size_t i = 0; i < expr->children.size(); ++i) {  
+					Expression* child = expr->children[i];  
+					std::string part;  
+					if (!parseExpression(child, remaining, part)) return false;  
+					accumulated += part;  
+					remaining = remaining.substr(part.size());  
+				}  
+				output = accumulated;  
+				return true;  
+			}  
+
+			case Expression::EXPR_ALTERNATIVE: {
+				std::cout << "Trying to match alternative: \n"; 
+				for (size_t i = 0; i < expr->children.size(); ++i) {  
+					Expression* child = expr->children[i];  
+					std::string part;  
+					if (parseExpression(child, input, part)) {  
+						output = part;  
+						return true;  
+					}  
+				} 
+				return false;  
+			}  
+
+			case Expression::EXPR_OPTIONAL: {
+				std::string part;
+				if (parseExpression(expr->children[0], input, part)) {
+					output = part;
+				} else {
+					output = ""; // rien n'est consommé
+				}
+				return true; // toujours réussi
+			}
+
+			case Expression::EXPR_REPEAT: {
+				std::string remaining = input;
+				std::string accumulated;
+				std::string part;
+
+				while (parseExpression(expr->children[0], remaining, part) && !part.empty()) {
+					accumulated += part;
+					remaining = remaining.substr(part.size());
+				}
+
+				output = accumulated;
+				return true; // succès même si rien n'a été consommé
+			}
+		}  
+		return false;  
+	}  
+};
+
+// Exemple main
 int main() {
-    Grammar g;
+	Grammar g;
+	
+	// Définir des règles simples
+	g.addRule("<A> ::= 'A'");
+	g.addRule("<B> ::= 'B'");
+	g.addRule("<AB> ::= <A> <B>");
 
-    std::cout << "=== Construction de la grammaire IRC ===\n";
+	// Definir des règles avec alternatives et répétitions
+	g.addRule("<letter> ::= 'A' | 'B'");
+	g.addRule("<nick> ::= <letter> { <letter> }");
 
-    // Règles IRC simplifiées pour tests
-    g.addRule("<letter> ::= 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H'");
-    g.addRule("<number> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'");
-    g.addRule("<nick> ::= <letter> { <letter> | <number> }");
-    g.addRule("<user> ::= <letter> { <letter> | <number> }");
-    g.addRule("<host> ::= <letter> { <letter> | <number> | '.' }");
-    g.addRule("<servername> ::= <letter> { <letter> | <number> | '.' }");
-    g.addRule("<SPACE> ::= ' ' { ' ' }");
-    g.addRule("<middle> ::= <letter> { <letter> | <number> }");
-    g.addRule("<trailing> ::= <letter> { <letter> | <number> | ' ' }");
-    g.addRule("<prefix> ::= <servername> | <nick> [ '!' <user> ] [ '@' <host> ]");
-    g.addRule("<command> ::= <letter> { <letter> } | <number> <number> <number>");
-    g.addRule("<params> ::= <SPACE> [ ':' <trailing> | <middle> <params> ]");
-    g.addRule("<crlf> ::= '\\r' '\\n'");
-    g.addRule("<message> ::= [ ':' <prefix> <SPACE> ] <command> <params> <crlf>");
+	// Definir regles plus complexes
+	g.addRule("<word> ::= <letter> { <letter> | <number> }");
+	g.addRule("<number> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'");
+	g.addRule("<command> ::= <letter> { <letter> } | <number> <number> <number>");
 
-    std::cout << "=== Début des tests ===\n";
+	// Definir regels avec optionnels
+	g.addRule("<optional_letter> ::= [ <letter> ] 'X'");
+	g.addRule("<optional_number> ::= [ <number> ] 'Y'");
 
-    // Chargement des tests depuis fichiers
-    std::vector<std::string> validTests;
-    std::vector<std::string> errorTests;
+	BNFInterpreter interp(&g);
 
-    std::ifstream validFile("tests/valid_tests.txt");
-    std::ifstream errorFile("tests/error_tests.txt");
+	std::string result;  
+	if (interp.parse("<AB>", "AB", result)) {  
+		std::cout << "Parsed: " << result << std::endl;  
+	} else {  
+		std::cout << "Parse failed" << std::endl;  
+	}
 
-    std::string line;
-    while (std::getline(validFile, line)) validTests.push_back(line);
-    while (std::getline(errorFile, line)) errorTests.push_back(line);
+	if (interp.parse("<nick>", "ABBA", result)) {  
+		std::cout << "Parsed nick: " << result << std::endl;  
+	} else {  
+		std::cout << "Parse nick failed" << std::endl;  
+	}
 
-    Rule* msgRule = g.getRule("<message>");
-    if (!msgRule) {
-        std::cerr << "Rule <message> not found!" << std::endl;
-        return 1;
-    }
+	if (interp.parse("<word>", "AAB", result)) {
+		std::cout << "Parsed word: " << result << std::endl;
+	} else {
+		std::cout << "Parse word failed" << std::endl;
+	}
 
-    // --- Tests valides ---
-    std::cout << "\n--- Valid tests ---\n";
-    for (size_t i = 0; i < validTests.size(); ++i) {
-        const std::string& input = validTests[i];
+	if (interp.parse("<command>", "AAB", result)) {
+		std::cout << "Parsed command: " << result << std::endl;
+	} else {
+		std::cout << "Parse command failed" << std::endl;
+	}
 
-        BNFTokenizer tokenizer(input);
-        BNFParserInternal parser(tokenizer);
-        Expression* ast = parser.parseExpression();
+	if (interp.parse("<command>", "123", result)) {
+		std::cout << "Parsed command: " << result << std::endl;
+	} else {
+		std::cout << "Parse command failed" << std::endl;
+	}
 
-        if (ast) {
-            std::cout << input << " : ✔ SUCCESS\n";
-            printAST(ast);
-            delete ast;
-        } else {
-            std::cout << input << " : ❌ PARSE ERROR\n";
-        }
-    }
+	if (interp.parse("<optional_letter>", "AX", result)) {
+		std::cout << "Parsed optional_letter: " << result << std::endl;
+	} else {
+		std::cout << "Parse optional_letter failed" << std::endl;
+	}
 
-    // --- Tests erreurs ---
-    std::cout << "\n--- Error tests ---\n";
-    for (size_t i = 0; i < errorTests.size(); ++i) {
-        const std::string& input = errorTests[i];
+	if (interp.parse("<optional_letter>", "X", result)) {
+		std::cout << "Parsed optional_letter: " << result << std::endl;
+	} else {
+		std::cout << "Parse optional_letter failed" << std::endl;
+	}
 
-        BNFTokenizer tokenizer(input);
-        BNFParserInternal parser(tokenizer);
-        Expression* ast = parser.parseExpression();
+	if (interp.parse("<optional_number>", "6Y", result)) {
+		std::cout << "Parsed optional_number: " << result << std::endl;
+	} else {
+		std::cout << "Parse optional_number failed" << std::endl;
+	}
 
-        if (ast) {
-            std::cout << input << " : ✔ SUCCESS (unexpected)\n";
-            printAST(ast);
-            delete ast;
-        } else {
-            std::cout << input << " : ❌ PARSE ERROR (expected)\n";
-        }
-    }
+	return 0;
 
-    std::cout << "\n=== Fin des tests ===\n";
-    return 0;
 }
+
+// #include <iostream>
+// #include "Grammar.hpp"
+// #include "BNFInterpreter.hpp"
+// #include "Value.hpp"
+
+// static void printValue(const Value& v, int indent = 0) {
+//     std::string pad(indent*2, ' ');
+//     if (v.type == Value::NONE) {
+//         std::cout << pad << "(none)\n";
+//     } else if (v.type == Value::STRING) {
+//         std::cout << pad << "\"" << v.str << "\"\n";
+//     } else if (v.type == Value::LIST) {
+//         std::cout << pad << "[\n";
+//         for (size_t i = 0; i < v.list.size(); ++i) printValue(v.list[i], indent+1);
+//         std::cout << pad << "]\n";
+//     } else if (v.type == Value::OBJECT) {
+//         std::cout << pad << "{\n";
+//         for (std::map<std::string, Value>::const_iterator it = v.object.begin();
+//              it != v.object.end(); ++it)
+//         {
+//             std::cout << pad << "  \"" << it->first << "\": ";
+//             if (it->second.type == Value::STRING) {
+//                 std::cout << "\"" << it->second.str << "\"\n";
+//             } else {
+//                 std::cout << "\n";
+//                 printValue(it->second, indent+2);
+//             }
+//         }
+//         std::cout << pad << "}\n";
+//     }
+// }
+
+// int main() {
+//     Grammar g;
+//     g.addRule("<letter> ::= 'A' | 'B' | 'C'");
+//     g.addRule("<number> ::= '0' | '1' | '2'");
+//     g.addRule("<nick> ::= <letter> { <letter> | <number> }");
+
+//     BNFInterpreter interp(g);
+
+//     std::string input = "AB1";
+//     ParseResult r = interp.parse("nick", input);
+
+//     std::cout << "success=" << r.success << " consumed=" << r.consumed << "\n";
+//     printValue(r.data);
+
+//     return 0;
+// }

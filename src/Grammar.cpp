@@ -12,7 +12,7 @@ Rule::~Rule() { delete rootExpr; }
 
 // ---------------- Grammar ----------------
 // Grammar lifecycle: initialize debug flag and clean up allocated rules.
-Grammar::Grammar() : debug(false) {}
+Grammar::Grammar() {}
 Grammar::~Grammar() {
 	for (size_t i = 0; i < rules.size(); ++i) {
 		DEBUG_MSG("Deleting rule: " + rules[i]->name);

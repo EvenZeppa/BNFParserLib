@@ -22,9 +22,6 @@ public:
 	void addRule(const std::string& ruleText);
 	Rule* getRule(const std::string& name) const;
 
-	// Flag debug
-	bool debug;
-
 private:
 	Expression* parseExpression(BNFTokenizer& tz);
 	Expression* parseSequence(BNFTokenizer& tz);

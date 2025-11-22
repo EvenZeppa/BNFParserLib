@@ -2,7 +2,7 @@
 CXX = g++
 # CONSTANTS = -DDEBUG_ACTIVE=0 -DDEBUG_GRAMMAR
 CONSTANTS =
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude $(CONSTANTS)
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude $(CONSTANTS) -g
 
 # Directories
 SRC_DIR = src
@@ -40,7 +40,7 @@ $(OBJ_DIR)/%.o: $(TESTS_DIR)/%.cpp
 
 # Generic test runners
 %_runner: $(OBJ_LIB) $(OBJ_DIR)/%.o
-	@$(CXX) $(CXXFLAGS) -o $@ $^ > /dev/null 2>&1
+	$(CXX) $(CXXFLAGS) -o $@ $^
 	./$@
 
 # Run all tests
