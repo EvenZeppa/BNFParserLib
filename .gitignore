@@ -1,0 +1,87 @@
+# Build directories
+build/
+Build/
+cmake-build-*/
+
+# Object files
+*.o
+*.obj
+*.lo
+*.slo
+
+# Static libraries
+*.a
+*.lib
+
+# Shared libraries
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+*.app
+*_runner
+test_*_runner
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+install_manifest.txt
+Makefile
+Testing/
+
+# IDE files
+.vscode/
+.idea/
+*.user
+*.suo
+*.vcxproj.user
+*.sln.docstates
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.#*
+
+# Generated documentation
+doc/html/
+doc/latex/
+docs/_build/
+
+# Test output
+Testing/
+CTestTestfile.cmake
+
+# Package files
+*.tar.gz
+*.zip
+*.deb
+*.rpm
+
+# Local configuration
+.env
+.env.local
+local.properties
+
+# Backup files
+*.bak
+*.backup
+*.orig

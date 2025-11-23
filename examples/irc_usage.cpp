@@ -80,17 +80,17 @@ void demonstrateSimpleCommands(const Grammar& grammar) {
     std::cout << std::string(60, '=') << std::endl;
     
     // Test individual components first
-    std::vector<std::pair<std::string, std::string>> tests = {
-        {"<nick>", "alice"},
-        {"<command>", "PRIVMSG"},
-        {"<command>", "001"},
-        {"<letter-command>", "JOIN"},
-        {"<number>", "332"}
-    };
+    std::vector<std::pair<std::string, std::string> > tests;
+    tests.push_back(std::make_pair("<nick>", "alice"));
+    tests.push_back(std::make_pair("<command>", "PRIVMSG"));
+    tests.push_back(std::make_pair("<command>", "001"));
+    tests.push_back(std::make_pair("<letter-command>", "JOIN"));
+    tests.push_back(std::make_pair("<number>", "332"));
     
     BNFParser parser(grammar);
     
-    for (const auto& test : tests) {
+    for (size_t i = 0; i < tests.size(); ++i) {
+        const std::pair<std::string, std::string>& test = tests[i];
         std::cout << "\nTesting rule '" << test.first << "' with input '" << test.second << "': ";
         size_t consumed = 0;
         ASTNode* ast = parser.parse(test.first, test.second, consumed);
@@ -119,29 +119,28 @@ int main() {
         demonstrateSimpleCommands(ircGrammar);
         
         // Test complete IRC messages
-        std::vector<std::string> ircMessages = {
-            // Simple command without prefix
-            "PING\\r\\n",
-            
-            // Command with parameters
-            "JOIN #channel\\r\\n",
-            
-            // Message with prefix
-            ":alice!user@host PRIVMSG #channel :Hello World\\r\\n",
-            
-            // Numeric reply
-            "001 alice :Welcome\\r\\n",
-            
-            // Server message
-            ":server.irc.net 332 alice #channel :Channel topic\\r\\n"
-        };
+        std::vector<std::string> ircMessages;
+        // Simple command without prefix
+        ircMessages.push_back("PING\\r\\n");
+        
+        // Command with parameters
+        ircMessages.push_back("JOIN #channel\\r\\n");
+        
+        // Message with prefix
+        ircMessages.push_back(":alice!user@host PRIVMSG #channel :Hello World\\r\\n");
+        
+        // Numeric reply
+        ircMessages.push_back("001 alice :Welcome\\r\\n");
+        
+        // Server message
+        ircMessages.push_back(":server.irc.net 332 alice #channel :Channel topic\\r\\n");
         
         std::cout << "\n" << std::string(60, '=') << std::endl;
         std::cout << "Testing complete IRC messages" << std::endl;
         std::cout << std::string(60, '=') << std::endl;
         
-        for (const std::string& message : ircMessages) {
-            parseIRCMessage(ircGrammar, message);
+        for (size_t i = 0; i < ircMessages.size(); ++i) {
+            parseIRCMessage(ircGrammar, ircMessages[i]);
         }
         
         std::cout << "\n" << std::string(60, '=') << std::endl;
