@@ -4,8 +4,16 @@
 #include <iostream>
 #include <string>
 
-static int passed = 0;
-static int failed = 0;
+/**
+ * @brief Simple unit testing framework for the BNF interpreter.
+ * 
+ * Provides basic assertion macros for testing equality, truth values,
+ * and false conditions. Tracks pass/fail counts and provides summary
+ * reporting functionality.
+ */
+
+static int passed = 0;  ///< Count of passed test assertions
+static int failed = 0;  ///< Count of failed test assertions
 
 // Assertion de l'égalité
 #define ASSERT_EQ(a,b) \

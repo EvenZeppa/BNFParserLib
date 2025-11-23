@@ -6,10 +6,12 @@
 
 // #define ENABLE_DEBUG
 
-/*
- * Simple debug macros. Define ENABLE_DEBUG (e.g. -DENABLE_DEBUG) to enable
- * debug output. Macros are C++98 friendly and use std::ostringstream to
- * evaluate streamable values safely.
+/**
+ * @brief Debug utilities for the BNF interpreter.
+ * 
+ * Provides conditional compilation debug macros that can be enabled
+ * or disabled at compile time. Uses std::ostringstream for safe
+ * evaluation of streamable values in C++98 compatible way.
  */
 #ifdef ENABLE_DEBUG
 

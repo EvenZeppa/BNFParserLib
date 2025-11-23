@@ -1,7 +1,6 @@
 #include "UnitTest.hpp"
 #include "Grammar.hpp"
 #include "BNFTokenizer.hpp"
-#include "BNFParserInternal.hpp"
 #include "Expression.hpp"
 #include <string>
 #include <vector>
