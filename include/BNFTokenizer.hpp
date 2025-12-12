@@ -23,7 +23,12 @@ struct Token {
         TOK_RBRACE,     ///< Right brace }
         TOK_LBRACKET,   ///< Left bracket [
         TOK_RBRACKET,   ///< Right bracket ]
+        TOK_LPAREN,     ///< Left parenthesis (
+        TOK_RPAREN,     ///< Right parenthesis )
         TOK_PIPE,       ///< Pipe operator |
+        TOK_ELLIPSIS,   ///< Ellipsis ... for ranges
+        TOK_CARET,      ///< Caret ^ for exclusion
+        TOK_HEX,        ///< Hexadecimal literal 0xNN
         TOK_WORD,       ///< Simple word token
         TOK_END         ///< End of input marker
     };
@@ -92,6 +97,18 @@ private:
      * @return Word token
      */
     Token parseWord();
+
+    /**
+     * @brief Parses a hexadecimal literal token (0xNN).
+     * @return Hex token
+     */
+    Token parseHex();
+
+    /**
+     * @brief Checks if the next characters form an ellipsis (...).
+     * @return true if ellipsis is found
+     */
+    bool isEllipsis() const;
 };
 
 #endif

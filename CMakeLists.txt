@@ -83,27 +83,10 @@ if(EXAMPLE_SOURCES)
     )
 endif()
 
-# Create a config file for find_package support
-include(CMakePackageConfigHelpers)
-
-configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BNFParserLibConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/BNFParserLibConfig.cmake"
-    INSTALL_DESTINATION lib/cmake/BNFParserLib
-)
-
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/BNFParserLibConfigVersion.cmake"
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-
-# Install config files (create directory structure if needed)
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/BNFParserLibConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/BNFParserLibConfigVersion.cmake"
-    DESTINATION lib/cmake/BNFParserLib
-)
+# Optional: Create a config file for find_package support
+# Commented out for now as it requires additional setup
+# include(CMakePackageConfigHelpers)
+# configure_package_config_file(...)
 
 # Print build information
 message(STATUS "BNFParserLib Configuration:")

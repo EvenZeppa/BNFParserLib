@@ -111,6 +111,108 @@ void test_peek_vs_next(TestRunner& runner) {
     ASSERT_EQ(runner, t5.value, "B");
 }
 
+/**
+ * @brief Test ellipsis token parsing.
+ */
+void test_ellipsis(TestRunner& runner) {
+    BNFTokenizer tz("'a' ... 'z'");
+    Token t1 = tz.next();
+    ASSERT_EQ(runner, t1.type, Token::TOK_TERMINAL);
+    ASSERT_EQ(runner, t1.value, "a");
+    
+    Token t2 = tz.next();
+    ASSERT_EQ(runner, t2.type, Token::TOK_ELLIPSIS);
+    ASSERT_EQ(runner, t2.value, "...");
+    
+    Token t3 = tz.next();
+    ASSERT_EQ(runner, t3.type, Token::TOK_TERMINAL);
+    ASSERT_EQ(runner, t3.value, "z");
+}
+
+/**
+ * @brief Test hexadecimal literal parsing.
+ */
+void test_hex_literal(TestRunner& runner) {
+    BNFTokenizer tz("0x00 0xFF 0x7F");
+    Token t1 = tz.next();
+    ASSERT_EQ(runner, t1.type, Token::TOK_HEX);
+    ASSERT_EQ(runner, t1.value, "0x00");
+    
+    Token t2 = tz.next();
+    ASSERT_EQ(runner, t2.type, Token::TOK_HEX);
+    ASSERT_EQ(runner, t2.value, "0xFF");
+    
+    Token t3 = tz.next();
+    ASSERT_EQ(runner, t3.type, Token::TOK_HEX);
+    ASSERT_EQ(runner, t3.value, "0x7F");
+}
+
+/**
+ * @brief Test parentheses token parsing.
+ */
+void test_parentheses(TestRunner& runner) {
+    BNFTokenizer tz("( )");
+    Token t1 = tz.next();
+    ASSERT_EQ(runner, t1.type, Token::TOK_LPAREN);
+    ASSERT_EQ(runner, t1.value, "(");
+    
+    Token t2 = tz.next();
+    ASSERT_EQ(runner, t2.type, Token::TOK_RPAREN);
+    ASSERT_EQ(runner, t2.value, ")");
+}
+
+/**
+ * @brief Test caret token parsing.
+ */
+void test_caret(TestRunner& runner) {
+    BNFTokenizer tz("^");
+    Token t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_CARET);
+    ASSERT_EQ(runner, t.value, "^");
+}
+
+/**
+ * @brief Test character class syntax.
+ */
+void test_char_class_syntax(TestRunner& runner) {
+    BNFTokenizer tz("( 'a' ... 'z' '0' ... '9' '_' )");
+    Token t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_LPAREN);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_TERMINAL);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_ELLIPSIS);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_TERMINAL);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_TERMINAL);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_ELLIPSIS);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_TERMINAL);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_TERMINAL);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_RPAREN);
+}
+
+/**
+ * @brief Test exclusive character class syntax.
+ */
+void test_exclusive_char_class_syntax(TestRunner& runner) {
+    BNFTokenizer tz("( ^ ' ' 0x0A )");
+    Token t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_LPAREN);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_CARET);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_TERMINAL);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_HEX);
+    t = tz.next();
+    ASSERT_EQ(runner, t.type, Token::TOK_RPAREN);
+}
+
 int main() {
     TestSuite suite("Tokenizer Test Suite");
     
@@ -122,6 +224,12 @@ int main() {
     suite.addTest("Braces and Brackets", test_braces_and_brackets);
     suite.addTest("Complex Expression", test_complex_expression);
     suite.addTest("Peek vs Next", test_peek_vs_next);
+    suite.addTest("Ellipsis Token", test_ellipsis);
+    suite.addTest("Hexadecimal Literal", test_hex_literal);
+    suite.addTest("Parentheses", test_parentheses);
+    suite.addTest("Caret Token", test_caret);
+    suite.addTest("Character Class Syntax", test_char_class_syntax);
+    suite.addTest("Exclusive Character Class Syntax", test_exclusive_char_class_syntax);
     
     // Run all tests
     TestRunner results = suite.run();

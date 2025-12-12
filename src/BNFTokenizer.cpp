@@ -43,11 +43,25 @@ Token BNFTokenizer::next() {
     if (c == '\'' || c == '"')
         return parseTerminal();
 
+    // Check for ellipsis ... before checking for single dot
+    if (c == '.' && isEllipsis()) {
+        pos += 3;
+        DEBUG_MSG("BNFTokenizer::next: found ELLIPSIS");
+        return Token(Token::TOK_ELLIPSIS, "...");
+    }
+
+    // Hexadecimal literal 0xNN
+    if (c == '0' && pos + 1 < text.size() && (text[pos+1] == 'x' || text[pos+1] == 'X'))
+        return parseHex();
+
     // Single-character tokens
     if (c == '{') { pos++; DEBUG_MSG("BNFTokenizer::next: found LBRACE"); return Token(Token::TOK_LBRACE, "{"); }
     if (c == '}') { pos++; DEBUG_MSG("BNFTokenizer::next: found RBRACE"); return Token(Token::TOK_RBRACE, "}"); }
     if (c == '[') { pos++; DEBUG_MSG("BNFTokenizer::next: found LBRACKET"); return Token(Token::TOK_LBRACKET, "["); }
     if (c == ']') { pos++; DEBUG_MSG("BNFTokenizer::next: found RBRACKET"); return Token(Token::TOK_RBRACKET, "]"); }
+    if (c == '(') { pos++; DEBUG_MSG("BNFTokenizer::next: found LPAREN"); return Token(Token::TOK_LPAREN, "("); }
+    if (c == ')') { pos++; DEBUG_MSG("BNFTokenizer::next: found RPAREN"); return Token(Token::TOK_RPAREN, ")"); }
+    if (c == '^') { pos++; DEBUG_MSG("BNFTokenizer::next: found CARET"); return Token(Token::TOK_CARET, "^"); }
     if (c == '|') { pos++; DEBUG_MSG("BNFTokenizer::next: found PIPE"); return Token(Token::TOK_PIPE, "|"); }
 
     // Word (fallback)
@@ -84,9 +98,34 @@ Token BNFTokenizer::parseWord() {
            !isspace(text[pos]) &&
            text[pos] != '|' &&
            text[pos] != '{' && text[pos] != '}' &&
-           text[pos] != '[' && text[pos] != ']')
+           text[pos] != '[' && text[pos] != ']' &&
+           text[pos] != '(' && text[pos] != ')' &&
+           text[pos] != '^' && text[pos] != '.')
     {
         pos++;
     }
     return Token(Token::TOK_WORD, text.substr(start, pos - start));
+}
+
+// Parse a hexadecimal literal token of the form 0xNN
+Token BNFTokenizer::parseHex() {
+    size_t start = pos;
+    pos += 2; // skip "0x"
+    
+    // Parse hex digits (1 or 2 digits)
+    while (pos < text.size() && isxdigit(text[pos])) {
+        pos++;
+    }
+    
+    std::string hexStr = text.substr(start, pos - start);
+    DEBUG_MSG("BNFTokenizer::parseHex: found hex literal '" << hexStr << "'");
+    return Token(Token::TOK_HEX, hexStr);
+}
+
+// Check if the next characters form an ellipsis (...)
+bool BNFTokenizer::isEllipsis() const {
+    return (pos + 2 < text.size() && 
+            text[pos] == '.' && 
+            text[pos+1] == '.' && 
+            text[pos+2] == '.');
 }
