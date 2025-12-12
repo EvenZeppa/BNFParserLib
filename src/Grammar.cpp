@@ -14,10 +14,28 @@ Rule::~Rule() { delete rootExpr; }
 // Grammar lifecycle: initialize debug flag and clean up allocated rules.
 Grammar::Grammar() : arena(0) {}
 Grammar::~Grammar() {
-	for (size_t i = 0; i < rules.size(); ++i) {
-		DEBUG_MSG("Deleting rule: " + rules[i]->name);
-		delete rules[i];
-	}
+    // When using an arena, memory is released in bulk; avoid double delete.
+    if (arena) return;
+    for (size_t i = 0; i < rules.size(); ++i) {
+        DEBUG_MSG("Deleting rule: " + rules[i]->name);
+        delete rules[i];
+    }
+}
+
+Rule* Grammar::createRule() {
+    if (arena) {
+        void* mem = arena->allocate(sizeof(Rule));
+        return mem ? new (mem) Rule() : 0;
+    }
+    return new Rule();
+}
+
+Expression* Grammar::createExpr(Expression::Type type) {
+    if (arena) {
+        void* mem = arena->allocate(sizeof(Expression));
+        return mem ? new (mem) Expression(type) : 0;
+    }
+    return new Expression(type);
 }
 
 // addRule: parse a textual rule of the form "LHS ::= RHS".
@@ -39,7 +57,7 @@ void Grammar::addRule(const std::string& ruleText) {
     while (!lhs.empty() && lhs[0] == ' ') lhs.erase(0,1);
     while (!lhs.empty() && lhs[lhs.size()-1] == ' ') lhs.erase(lhs.size()-1,1);
 
-    Rule* r = new Rule();
+    Rule* r = createRule();
     r->name = lhs;
 
     BNFTokenizer tz(rhs);
@@ -75,7 +93,7 @@ Expression* Grammar::parseExpression(BNFTokenizer& tz) {
     if (t.type != Token::TOK_PIPE)
         return left;
 
-    Expression* alt = new Expression(Expression::EXPR_ALTERNATIVE);
+    Expression* alt = createExpr(Expression::EXPR_ALTERNATIVE);
     alt->children.push_back(left);
 
     while (tz.peek().type == Token::TOK_PIPE) {
@@ -120,7 +138,7 @@ Expression* Grammar::parseSequence(BNFTokenizer& tz) {
     if (children.size() == 1)
         return children[0];
 
-    Expression* seq = new Expression(Expression::EXPR_SEQUENCE);
+    Expression* seq = createExpr(Expression::EXPR_SEQUENCE);
     seq->children = children;
 
     std::stringstream ss;
@@ -141,7 +159,7 @@ Expression* Grammar::parseTerm(BNFTokenizer& tz) {
         if (tz.next().type != Token::TOK_RBRACE)
             std::cerr << "Missing '}'" << std::endl;
 
-        Expression* rep = new Expression(Expression::EXPR_REPEAT);
+        Expression* rep = createExpr(Expression::EXPR_REPEAT);
         rep->children.push_back(inside);
 
         std::stringstream ss;
@@ -157,7 +175,7 @@ Expression* Grammar::parseTerm(BNFTokenizer& tz) {
         if (tz.next().type != Token::TOK_RBRACKET)
             std::cerr << "Missing ']'" << std::endl;
 
-        Expression* opt = new Expression(Expression::EXPR_OPTIONAL);
+        Expression* opt = createExpr(Expression::EXPR_OPTIONAL);
         opt->children.push_back(inside);
 
         std::stringstream ss;
@@ -196,7 +214,7 @@ Expression* Grammar::parseFactor(BNFTokenizer& tz) {
             unsigned char start = tokenToChar(t);
             unsigned char end = tokenToChar(endToken);
             
-            Expression* e = new Expression(Expression::EXPR_CHAR_RANGE);
+            Expression* e = createExpr(Expression::EXPR_CHAR_RANGE);
             e->charRange = CharRange(start, end);
             
             std::stringstream ss;
@@ -207,7 +225,7 @@ Expression* Grammar::parseFactor(BNFTokenizer& tz) {
         }
         
         // Regular terminal (not a range)
-        Expression* e = new Expression(Expression::EXPR_TERMINAL);
+        Expression* e = createExpr(Expression::EXPR_TERMINAL);
         e->value = t.value;
 
         std::stringstream ss;
@@ -218,7 +236,7 @@ Expression* Grammar::parseFactor(BNFTokenizer& tz) {
     }
 
     if (t.type == Token::TOK_SYMBOL) {
-        Expression* e = new Expression(Expression::EXPR_SYMBOL);
+        Expression* e = createExpr(Expression::EXPR_SYMBOL);
         e->value = t.value;
 
         std::stringstream ss;
@@ -229,7 +247,7 @@ Expression* Grammar::parseFactor(BNFTokenizer& tz) {
     }
 
     if (t.type == Token::TOK_WORD) {
-        Expression* e = new Expression(Expression::EXPR_TERMINAL);
+        Expression* e = createExpr(Expression::EXPR_TERMINAL);
         e->value = t.value;
 
         std::stringstream ss;
@@ -246,7 +264,7 @@ Expression* Grammar::parseFactor(BNFTokenizer& tz) {
 // parseCharClass: parse a character class expression in parentheses
 // Format: ( [^] (terminal|hex|range)* )
 Expression* Grammar::parseCharClass(BNFTokenizer& tz) {
-    Expression* cls = new Expression(Expression::EXPR_CHAR_CLASS);
+    Expression* cls = createExpr(Expression::EXPR_CHAR_CLASS);
     // Build bitmap progressively; default all bits to false
     cls->charBitmap.reset();
     

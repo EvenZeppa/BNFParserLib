@@ -68,6 +68,9 @@ public:
 	void setArena(Arena* a) { arena = a; }
 
 private:
+	Rule* createRule();
+	Expression* createExpr(Expression::Type type);
+
 	/**
 	 * @brief Parses alternatives separated by '|' operators.
 	 * @param tz Tokenizer to read from
