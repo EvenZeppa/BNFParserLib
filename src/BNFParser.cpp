@@ -82,6 +82,10 @@ bool BNFParser::parseExpression(Expression* expr,
             return parseOptional(expr, input, pos, outNode);
         case Expression::EXPR_REPEAT:
             return parseRepeat(expr, input, pos, outNode);
+        case Expression::EXPR_CHAR_RANGE:
+            return parseCharRange(expr, input, pos, outNode);
+        case Expression::EXPR_CHAR_CLASS:
+            return parseCharClass(expr, input, pos, outNode);
         default:
             DEBUG_MSG("parseExpression: unsupported expr type " << expr->type);
             std::cerr << "BNFParser::parseExpression: unsupported expr type\n";
@@ -307,4 +311,91 @@ bool BNFParser::parseRepeat(Expression* expr,
         parent->children.push_back(items[i]);
     outNode = parent;
     return true;
+}
+
+// Parse character range expressions - match one character within the range
+bool BNFParser::parseCharRange(Expression* expr,
+                               const std::string& input,
+                               size_t& pos,
+                               ASTNode*& outNode) const
+{
+    if (pos >= input.size()) {
+        DEBUG_MSG("parseCharRange: reached end of input");
+        return false;
+    }
+    
+    unsigned char ch = static_cast<unsigned char>(input[pos]);
+    unsigned char start = expr->charRange.start;
+    unsigned char end = expr->charRange.end;
+    
+    DEBUG_MSG("parseCharRange: checking if " << (int)ch << " is in range [" 
+              << (int)start << ", " << (int)end << "]");
+    
+    if (ch >= start && ch <= end) {
+        DEBUG_MSG("parseCharRange: matched character " << (int)ch);
+        ASTNode* node = new ASTNode("<char-range>");
+        node->matched = std::string(1, ch);
+        pos++;
+        outNode = node;
+        return true;
+    }
+    
+    DEBUG_MSG("parseCharRange: character " << (int)ch << " not in range");
+    return false;
+}
+
+// Parse character class expressions - match one character against the class
+bool BNFParser::parseCharClass(Expression* expr,
+                               const std::string& input,
+                               size_t& pos,
+                               ASTNode*& outNode) const
+{
+    if (pos >= input.size()) {
+        DEBUG_MSG("parseCharClass: reached end of input");
+        return false;
+    }
+    
+    unsigned char ch = static_cast<unsigned char>(input[pos]);
+    bool found = false;
+    
+    DEBUG_MSG("parseCharClass: checking character " << (int)ch 
+              << ", isExclusion=" << expr->isExclusion);
+    
+    // Check individual characters
+    for (size_t i = 0; i < expr->charList.size(); ++i) {
+        if (ch == expr->charList[i]) {
+            found = true;
+            DEBUG_MSG("parseCharClass: found in charList at index " << i);
+            break;
+        }
+    }
+    
+    // Check ranges
+    if (!found) {
+        for (size_t i = 0; i < expr->rangeList.size(); ++i) {
+            unsigned char start = expr->rangeList[i].start;
+            unsigned char end = expr->rangeList[i].end;
+            if (ch >= start && ch <= end) {
+                found = true;
+                DEBUG_MSG("parseCharClass: found in range [" << (int)start 
+                          << ", " << (int)end << "]");
+                break;
+            }
+        }
+    }
+    
+    // Apply exclusion logic
+    bool match = expr->isExclusion ? !found : found;
+    
+    if (match) {
+        DEBUG_MSG("parseCharClass: matched character " << (int)ch);
+        ASTNode* node = new ASTNode("<char-class>");
+        node->matched = std::string(1, ch);
+        pos++;
+        outNode = node;
+        return true;
+    }
+    
+    DEBUG_MSG("parseCharClass: character " << (int)ch << " did not match class");
+    return false;
 }

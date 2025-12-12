@@ -136,6 +136,32 @@ private:
                      const std::string& input,
                      size_t& pos,
                      ASTNode*& outNode) const;
+
+    /**
+     * @brief Parses character range expressions.
+     * @param expr The character range expression to parse
+     * @param input The input text
+     * @param pos Current position in input (updated during parsing)
+     * @param outNode Output parameter for the generated AST node
+     * @return true if parsing succeeded, false otherwise
+     */
+    bool parseCharRange(Expression* expr,
+                        const std::string& input,
+                        size_t& pos,
+                        ASTNode*& outNode) const;
+
+    /**
+     * @brief Parses character class expressions.
+     * @param expr The character class expression to parse
+     * @param input The input text
+     * @param pos Current position in input (updated during parsing)
+     * @param outNode Output parameter for the generated AST node
+     * @return true if parsing succeeded, false otherwise
+     */
+    bool parseCharClass(Expression* expr,
+                        const std::string& input,
+                        size_t& pos,
+                        ASTNode*& outNode) const;
 };
 
 #endif

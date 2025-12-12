@@ -218,6 +218,196 @@ void test_unknown_rule(TestRunner& runner) {
     ASSERT_EQ(runner, consumed, 0);
 }
 
+//
+//  TEST 11 : Character range - lowercase
+//
+void test_char_range_lowercase(TestRunner& runner) {
+    Grammar g;
+    g.addRule("<lower> ::= 'a' ... 'z'");
+    BNFParser p(g);
+
+    size_t consumed = 0;
+    
+    // Test valid lowercase letters
+    ASTNode* ast = p.parse("<lower>", "a", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, ast->matched, "a");
+    ASSERT_EQ(runner, consumed, 1);
+    delete ast;
+    
+    consumed = 0;
+    ast = p.parse("<lower>", "m", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, ast->matched, "m");
+    delete ast;
+    
+    consumed = 0;
+    ast = p.parse("<lower>", "z", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, ast->matched, "z");
+    delete ast;
+    
+    // Test invalid characters
+    consumed = 0;
+    ast = p.parse("<lower>", "A", consumed);
+    ASSERT_TRUE(runner, ast == 0);
+    
+    consumed = 0;
+    ast = p.parse("<lower>", "0", consumed);
+    ASSERT_TRUE(runner, ast == 0);
+}
+
+//
+//  TEST 12 : Character range - hex
+//
+void test_char_range_hex(TestRunner& runner) {
+    Grammar g;
+    g.addRule("<ascii> ::= 0x00 ... 0x7F");
+    BNFParser p(g);
+
+    size_t consumed = 0;
+    
+    // Test valid ASCII characters
+    ASTNode* ast = p.parse("<ascii>", "A", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, consumed, 1);
+    delete ast;
+    
+    consumed = 0;
+    // Test with a low ASCII character (not null to avoid string issues)
+    std::string input;
+    input.push_back('\x01');  // SOH character
+    ast = p.parse("<ascii>", input, consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    delete ast;
+    
+    consumed = 0;
+    input.clear();
+    input.push_back('\x7F');  // DEL character
+    ast = p.parse("<ascii>", input, consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    delete ast;
+    
+    // Test invalid (>= 0x80)
+    consumed = 0;
+    input.clear();
+    input.push_back('\x80');
+    ast = p.parse("<ascii>", input, consumed);
+    ASSERT_TRUE(runner, ast == 0);
+}
+
+//
+//  TEST 13 : Inclusive character class
+//
+void test_inclusive_char_class(TestRunner& runner) {
+    Grammar g;
+    g.addRule("<ident> ::= ( 'a' ... 'z' 'A' ... 'Z' '_' )");
+    BNFParser p(g);
+
+    size_t consumed = 0;
+    
+    // Test lowercase
+    ASTNode* ast = p.parse("<ident>", "a", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, ast->matched, "a");
+    delete ast;
+    
+    // Test uppercase
+    consumed = 0;
+    ast = p.parse("<ident>", "Z", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, ast->matched, "Z");
+    delete ast;
+    
+    // Test underscore
+    consumed = 0;
+    ast = p.parse("<ident>", "_", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, ast->matched, "_");
+    delete ast;
+    
+    // Test invalid characters
+    consumed = 0;
+    ast = p.parse("<ident>", "0", consumed);
+    ASSERT_TRUE(runner, ast == 0);
+    
+    consumed = 0;
+    ast = p.parse("<ident>", "-", consumed);
+    ASSERT_TRUE(runner, ast == 0);
+}
+
+//
+//  TEST 14 : Exclusive character class
+//
+void test_exclusive_char_class(TestRunner& runner) {
+    Grammar g;
+    g.addRule("<nonspace> ::= ( ^ ' ' 0x0A 0x0D )");
+    BNFParser p(g);
+
+    size_t consumed = 0;
+    
+    // Test valid characters (anything except space, LF, CR)
+    ASTNode* ast = p.parse("<nonspace>", "a", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, ast->matched, "a");
+    delete ast;
+    
+    consumed = 0;
+    ast = p.parse("<nonspace>", "0", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    delete ast;
+    
+    consumed = 0;
+    ast = p.parse("<nonspace>", "Z", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    delete ast;
+    
+    // Test excluded characters
+    consumed = 0;
+    ast = p.parse("<nonspace>", " ", consumed);
+    ASSERT_TRUE(runner, ast == 0);
+    
+    consumed = 0;
+    std::string input = "\x0A";  // LF
+    ast = p.parse("<nonspace>", input, consumed);
+    ASSERT_TRUE(runner, ast == 0);
+    
+    consumed = 0;
+    input = "\x0D";  // CR
+    ast = p.parse("<nonspace>", input, consumed);
+    ASSERT_TRUE(runner, ast == 0);
+}
+
+//
+//  TEST 15 : Mixed character class with sequences
+//
+void test_mixed_char_class_sequence(TestRunner& runner) {
+    Grammar g;
+    g.addRule("<hex> ::= ( '0' ... '9' 'a' ... 'f' 'A' ... 'F' )");
+    g.addRule("<hexnum> ::= '0' 'x' <hex> <hex>");
+    BNFParser p(g);
+
+    size_t consumed = 0;
+    
+    // Test valid hex number
+    ASTNode* ast = p.parse("<hexnum>", "0xFF", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, ast->matched, "0xFF");
+    ASSERT_EQ(runner, consumed, 4);
+    delete ast;
+    
+    consumed = 0;
+    ast = p.parse("<hexnum>", "0x1a", consumed);
+    ASSERT_TRUE(runner, ast != 0);
+    ASSERT_EQ(runner, ast->matched, "0x1a");
+    delete ast;
+    
+    // Test invalid hex number
+    consumed = 0;
+    ast = p.parse("<hexnum>", "0xGG", consumed);
+    ASSERT_TRUE(runner, ast == 0);
+}
+
 int main() {
     TestSuite suite("Parser Test Suite");
     
@@ -232,6 +422,11 @@ int main() {
     suite.addTest("Parse Symbol", test_parse_symbol);
     suite.addTest("Parse Must Consume All", test_parse_must_consume_all);
     suite.addTest("Unknown Rule", test_unknown_rule);
+    suite.addTest("Character Range Lowercase", test_char_range_lowercase);
+    suite.addTest("Character Range Hex", test_char_range_hex);
+    suite.addTest("Inclusive Character Class", test_inclusive_char_class);
+    suite.addTest("Exclusive Character Class", test_exclusive_char_class);
+    suite.addTest("Mixed Character Class Sequence", test_mixed_char_class_sequence);
     
     // Run all tests
     TestRunner results = suite.run();
