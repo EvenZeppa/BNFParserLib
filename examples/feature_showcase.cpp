@@ -4,6 +4,8 @@
 #include <vector>
 #include "Grammar.hpp"
 #include "BNFParser.hpp"
+#include "Arena.hpp"
+#include "ExpressionInterner.hpp"
 
 // Simple assertion helpers used by all phases
 static void expectMatch(const std::string& title,
@@ -28,6 +30,39 @@ static void expectFail(const std::string& title,
     ASTNode* ast = parser.parse(rule, input, consumed);
     assert(ast == 0);
     std::cout << "  [fail as expected] " << title << " (consumed=" << consumed << ")" << std::endl;
+}
+
+// Phase 3: arena-backed allocation and expression interning
+static void phaseArenaAndInterner() {
+    std::cout << "\n=== Phase 3: Arena and Interner ===" << std::endl;
+
+    Arena arena(2048);
+    ExpressionInterner interner;
+    Grammar g;
+    g.setArena(&arena);
+    g.setInterner(&interner);
+
+    g.addRule("<digit> ::= '0' ... '9'");
+    g.addRule("<hex-digit> ::= <digit> | 'a' ... 'f' | 'A' ... 'F'");
+    g.addRule("<octet> ::= <hex-digit> <hex-digit>");
+    g.addRule("<octet-copy> ::= <hex-digit> <hex-digit>");
+
+    // Two color formats share the same sub-expressions; the interner deduplicates them
+    g.addRule("<color-long> ::= '#' <octet> <octet> <octet>");
+    g.addRule("<color-short> ::= '#' <hex-digit> <hex-digit> <hex-digit>");
+    g.addRule("<color> ::= <color-long> | <color-short>");
+
+    BNFParser parser(g);
+
+    expectMatch("hex color (long)", parser, "<color>", "#1a2b3c", "#1a2b3c");
+    expectMatch("hex color (short)", parser, "<color>", "#abc", "#abc");
+
+    Expression* oct = g.getRule("<octet>")->rootExpr;
+    Expression* octCopy = g.getRule("<octet-copy>")->rootExpr;
+    assert(oct == octCopy && "Interner should reuse identical expression trees");
+    std::cout << "  [info] interner reused <octet> tree (pointer equality verified)" << std::endl;
+
+    std::cout << "Phase 3 complete and testable." << std::endl;
 }
 
 // Phase 2: sequences, repetition, optional elements, and alternation
@@ -103,6 +138,7 @@ int main() {
 
     phaseRangesAndClasses();
     phaseSequencesAlternation();
+    phaseArenaAndInterner();
 
     return 0;
 }
