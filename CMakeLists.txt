@@ -104,3 +104,15 @@ endif()
 if(EXAMPLE_SOURCES)
     message(STATUS "  Example Files: ${EXAMPLE_SOURCES}")
 endif()
+
+add_custom_target(distclean
+    COMMAND ${CMAKE_COMMAND} -E echo "Nettoyage complet du projet..."
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/CMakeCache.txt"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/CMakeFiles"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/Makefile"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/Testing"
+    COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_BINARY_DIR}/*.cmake"
+    # Ajoutez ici vos exécutables spécifiques si besoin
+    COMMAND ${CMAKE_COMMAND} -E echo "Nettoyage terminé."
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
