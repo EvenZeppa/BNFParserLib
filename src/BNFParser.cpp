@@ -86,6 +86,11 @@ const BNFParser::FirstInfo& BNFParser::computeFirst(Expression* expr) const {
         case Expression::EXPR_CHAR_RANGE: {
             unsigned char start = expr->charRange.start;
             unsigned char end = expr->charRange.end;
+            if (start > end) {
+                unsigned char tmp = start;
+                start = end;
+                end = tmp;
+            }
             for (unsigned int c = start; c <= end; ++c) {
                 addChar(fi, static_cast<unsigned char>(c));
                 if (c == 255) break; // avoid overflow
@@ -443,6 +448,11 @@ bool BNFParser::parseCharRange(Expression* expr,
     unsigned char ch = static_cast<unsigned char>(input[pos]);
     unsigned char start = expr->charRange.start;
     unsigned char end = expr->charRange.end;
+    if (start > end) {
+        unsigned char tmp = start;
+        start = end;
+        end = tmp;
+    }
     
     DEBUG_MSG("parseCharRange: checking if " << (int)ch << " is in range [" 
               << (int)start << ", " << (int)end << "]");

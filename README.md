@@ -177,6 +177,7 @@ The library supports standard BNF notation:
 
 **Supported constructs:**
 - **Terminals**: `'literal'` - Matches exact text
+- **Character ranges**: `'a'...'z'` - Matches one character between start and end (inclusive)
 - **Non-terminals**: `<symbol>` - References other rules
 - **Alternatives**: `A | B` - Matches A or B
 - **Sequences**: `A B` - Matches A followed by B  
@@ -185,8 +186,9 @@ The library supports standard BNF notation:
 
 **Example IRC-like grammar:**
 ```cpp
-grammar.addRule("<letter> ::= 'a' | 'b' | 'c' | ... | 'z' | 'A' | ... | 'Z'");
-grammar.addRule("<digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'");
+grammar.addRule("<letter> ::= 'a'...'z' | 'A'...'Z'");
+grammar.addRule("<digit> ::= '0'...'9'");
+grammar.addRule("<safechar> ::= ' '...'~'");
 grammar.addRule("<nick-char> ::= <letter> | <digit> | '_' | '-'");
 grammar.addRule("<nick> ::= <letter> { <nick-char> }");
 grammar.addRule("<command> ::= 'JOIN' | 'PART' | 'PRIVMSG'");

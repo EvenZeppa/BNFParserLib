@@ -3,6 +3,12 @@
 #include <iostream>
 #include <sstream>
 
+namespace {
+bool isSingleCharEndpointToken(const Token& t) {
+    return t.type == Token::TOK_HEX || (t.type == Token::TOK_TERMINAL && t.value.size() == 1);
+}
+}
+
 // ---------------- Rule ----------------
 // Constructor and destructor for Rule.
 // Rule owns the root expression node for the grammar rule.
@@ -219,6 +225,11 @@ Expression* Grammar::parseFactor(BNFTokenizer& tz) {
             tz.next(); // consume ellipsis
             Token endToken = tz.next();
             
+            if (!isSingleCharEndpointToken(t) || !isSingleCharEndpointToken(endToken)) {
+                std::cerr << "Character range endpoints must be single characters" << std::endl;
+                return NULL;
+            }
+
             if (endToken.type != Token::TOK_TERMINAL && endToken.type != Token::TOK_HEX) {
                 std::cerr << "Expected terminal or hex after ellipsis in range" << std::endl;
                 return NULL;
@@ -313,6 +324,12 @@ Expression* Grammar::parseCharClass(BNFTokenizer& tz) {
                 tz.next(); // consume ellipsis
                 Token endToken = tz.next();
                 
+                if (!isSingleCharEndpointToken(t) || !isSingleCharEndpointToken(endToken)) {
+                    std::cerr << "Character class range endpoints must be single characters" << std::endl;
+                    delete cls;
+                    return NULL;
+                }
+
                 if (endToken.type != Token::TOK_TERMINAL && endToken.type != Token::TOK_HEX) {
                     std::cerr << "Expected terminal or hex after ellipsis in character class range" << std::endl;
                     delete cls;
@@ -334,6 +351,11 @@ Expression* Grammar::parseCharClass(BNFTokenizer& tz) {
                 DEBUG_MSG("parseCharClass: added range to bitmap " << (int)start << " ... " << (int)end);
             } else {
                 // Single character
+                if (!isSingleCharEndpointToken(t)) {
+                    std::cerr << "Character class entries must be single characters" << std::endl;
+                    delete cls;
+                    return NULL;
+                }
                 unsigned char ch = tokenToChar(t);
                 cls->charBitmap.set(ch, true);
                 DEBUG_MSG("parseCharClass: added char to bitmap " << (int)ch);
